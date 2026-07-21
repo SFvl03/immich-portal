@@ -1,0 +1,5 @@
+window.PORTAL_CONFIG = {
+  immichUrl: "${IMMICH_URL}",
+  uploadUrl: "${UPLOAD_URL}",
+  title: "${PORTAL_TITLE}"
+};

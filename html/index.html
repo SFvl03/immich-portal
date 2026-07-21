@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Photo Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <header class="bar">
+    <div class="plate">
+      <span class="plate-mark">◆</span>
+      <h1 id="portal-title">Photo Portal</h1>
+    </div>
+    <nav class="tabs" role="tablist" aria-label="Portal sections">
+      <button class="tab" data-target="view" role="tab" aria-selected="true" id="tab-view">
+        <span class="tab-num">I</span>
+        <span class="tab-label">View &amp; Save</span>
+      </button>
+      <button class="tab" data-target="upload" role="tab" aria-selected="false" id="tab-upload">
+        <span class="tab-num">II</span>
+        <span class="tab-label">Add Photos</span>
+      </button>
+    </nav>
+    <div class="rail" aria-hidden="true"><span class="rail-fill"></span></div>
+  </header>
+
+  <main>
+    <section class="pane is-active" id="pane-view" role="tabpanel" aria-labelledby="tab-view">
+      <iframe id="frame-view" title="Gallery" loading="lazy" allow="clipboard-write"></iframe>
+      <a class="escape" id="escape-view" target="_blank" rel="noopener">Not loading? Open the gallery directly ↗</a>
+    </section>
+
+    <section class="pane" id="pane-upload" role="tabpanel" aria-labelledby="tab-upload" hidden>
+      <iframe id="frame-upload" title="Upload" loading="lazy" allow="clipboard-write"></iframe>
+      <a class="escape" id="escape-upload" target="_blank" rel="noopener">Not loading? Open the upload page directly ↗</a>
+    </section>
+  </main>
+
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

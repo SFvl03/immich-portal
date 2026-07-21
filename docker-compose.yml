@@ -1,0 +1,18 @@
+# Local dev / testing: builds the image from this repo.
+# Once you've pushed to GitHub and the publish workflow has run, switch to
+# `image: ghcr.io/<you>/immich-portal:latest` instead — see README.md.
+services:
+  immich-portal:
+    build: .
+    container_name: immich-portal
+    ports:
+      - "8080:80"
+    environment:
+      # Your Immich public share link (the "shared album" URL Immich gives you,
+      # with uploads enabled if you want guests to be able to add photos there too)
+      - IMMICH_URL=https://photos.example.com/share/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+      # Your public-facing upload link (e.g. a reverse-proxied drop folder)
+      - UPLOAD_URL=https://upload.example.com
+      # Optional: shown at the top of the page
+      - PORTAL_TITLE=Family Photo Portal
+    restart: unless-stopped
