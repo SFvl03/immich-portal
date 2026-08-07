@@ -1,5 +1,5 @@
 window.PORTAL_CONFIG = {
-  immichUrl: "${IMMICH_URL}",
+  albums: "${ALBUMS}",
   uploadUrl: "${UPLOAD_URL}",
   title: "${PORTAL_TITLE}"
 };

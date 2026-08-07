@@ -7,28 +7,31 @@
     if (titleEl) titleEl.textContent = cfg.title;
   }
 
-  var frameView = document.getElementById('frame-view');
-  var frameUpload = document.getElementById('frame-upload');
-  var escapeView = document.getElementById('escape-view');
-  var escapeUpload = document.getElementById('escape-upload');
+  var ROMAN = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X',
+    'XI', 'XII', 'XIII', 'XIV', 'XV', 'XVI', 'XVII', 'XVIII', 'XIX', 'XX'];
+  function roman(n) { return ROMAN[n] || String(n); }
 
-  frameView.src = cfg.immichUrl || '';
-  frameUpload.src = cfg.uploadUrl || '';
-  escapeView.href = cfg.immichUrl || '#';
-  escapeUpload.href = cfg.uploadUrl || '#';
+  // "Name|URL;Name|URL;..." -> [{name, url}, ...]
+  function parseAlbums(raw) {
+    if (!raw) return [];
+    return raw.split(';').map(function (pair) {
+      pair = pair.trim();
+      if (!pair) return null;
+      var idx = pair.indexOf('|');
+      if (idx === -1) return null;
+      return { name: pair.slice(0, idx).trim(), url: pair.slice(idx + 1).trim() };
+    }).filter(Boolean);
+  }
 
-  var tabs = {
-    view: {
-      btn: document.getElementById('tab-view'),
-      pane: document.getElementById('pane-view')
-    },
-    upload: {
-      btn: document.getElementById('tab-upload'),
-      pane: document.getElementById('pane-upload')
-    }
-  };
+  var sections = parseAlbums(cfg.albums);
+  if (cfg.uploadUrl) {
+    sections.push({ name: 'Add Photos', url: cfg.uploadUrl });
+  }
 
+  var tabsEl = document.getElementById('tabs');
+  var panesEl = document.getElementById('panes');
   var railFill = document.querySelector('.rail-fill');
+  var tabs = [];
 
   function positionRail(btn) {
     if (!railFill || !btn) return;
@@ -38,27 +41,73 @@
     railFill.style.transform = 'translateX(' + (rect.left - barRect.left) + 'px)';
   }
 
-  function activate(name) {
-    Object.keys(tabs).forEach(function (key) {
-      var isActive = key === name;
-      tabs[key].btn.setAttribute('aria-selected', String(isActive));
-      tabs[key].pane.hidden = !isActive;
-      tabs[key].pane.classList.toggle('is-active', isActive);
+  function activate(index) {
+    tabs.forEach(function (t, i) {
+      var isActive = i === index;
+      t.btn.setAttribute('aria-selected', String(isActive));
+      t.pane.hidden = !isActive;
+      t.pane.classList.toggle('is-active', isActive);
     });
-    positionRail(tabs[name].btn);
+    positionRail(tabs[index].btn);
   }
 
-  Object.keys(tabs).forEach(function (key) {
-    tabs[key].btn.addEventListener('click', function () { activate(key); });
+  sections.forEach(function (section, i) {
+    var key = 'tab-' + i;
+
+    var btn = document.createElement('button');
+    btn.className = 'tab';
+    btn.type = 'button';
+    btn.setAttribute('role', 'tab');
+    btn.setAttribute('aria-selected', i === 0 ? 'true' : 'false');
+    btn.id = key;
+
+    var num = document.createElement('span');
+    num.className = 'tab-num';
+    num.textContent = roman(i + 1);
+
+    var label = document.createElement('span');
+    label.className = 'tab-label';
+    label.textContent = section.name;
+
+    btn.appendChild(num);
+    btn.appendChild(label);
+    tabsEl.appendChild(btn);
+
+    var pane = document.createElement('section');
+    pane.className = 'pane' + (i === 0 ? ' is-active' : '');
+    pane.setAttribute('role', 'tabpanel');
+    pane.setAttribute('aria-labelledby', key);
+    if (i !== 0) pane.hidden = true;
+
+    var iframe = document.createElement('iframe');
+    iframe.title = section.name;
+    iframe.loading = 'lazy';
+    iframe.setAttribute('allow', 'clipboard-write');
+    iframe.src = section.url;
+
+    var escapeLink = document.createElement('a');
+    escapeLink.className = 'escape';
+    escapeLink.target = '_blank';
+    escapeLink.rel = 'noopener';
+    escapeLink.href = section.url;
+    escapeLink.textContent = 'Not loading? Open "' + section.name + '" directly \u2197';
+
+    pane.appendChild(iframe);
+    pane.appendChild(escapeLink);
+    panesEl.appendChild(pane);
+
+    tabs.push({ btn: btn, pane: pane });
+    btn.addEventListener('click', function () { activate(i); });
   });
 
   window.addEventListener('resize', function () {
-    var current = Object.keys(tabs).find(function (key) {
-      return tabs[key].btn.getAttribute('aria-selected') === 'true';
+    var current = tabs.findIndex(function (t) {
+      return t.btn.getAttribute('aria-selected') === 'true';
     });
-    positionRail(tabs[current].btn);
+    if (current !== -1) positionRail(tabs[current].btn);
   });
 
-  // Set initial rail position once fonts/layout have settled
-  window.requestAnimationFrame(function () { positionRail(tabs.view.btn); });
+  window.requestAnimationFrame(function () {
+    if (tabs.length) positionRail(tabs[0].btn);
+  });
 })();

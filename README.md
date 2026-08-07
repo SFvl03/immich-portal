@@ -1,24 +1,37 @@
 # Photo Portal
 
-A tiny container that gives guests **one URL** with two tabs:
+A tiny container that gives guests **one URL** with a tab per album, plus an
+optional upload tab:
 
-- **View & Save** — your Immich share link, embedded
-- **Add Photos** — your public upload/proxy link, embedded
+- One tab per Immich share link you configure (as many as you want)
+- An optional **Add Photos** tab for a public upload/proxy link
 
 Nothing is stored or proxied by this container itself — it's just a static
-page with two `<iframe>`s and a tab switcher. All actual viewing/uploading
-still happens on Immich and on your proxy, in the guest's own browser.
+page with `<iframe>`s and a tab switcher. All actual viewing/uploading still
+happens on Immich and on your proxy, in the guest's own browser.
 
 ## 1. Configure
 
 Edit `docker-compose.yml` and set:
 
-- `IMMICH_URL` — the public share link Immich gives you (Album → Share →
-  Create link). If you want guests to be able to upload *into* that same
-  album, enable "Allow public user to upload" on the share link.
+- `ALBUMS` — one tab per album, format `Name|share-link;Name|share-link;...`.
+  Each pair is `Name|URL`; separate multiple pairs with `;`. Example:
+  ```
+  ALBUMS=Ceremony|https://photos.example.com/share/aaa;Reception|https://photos.example.com/share/bbb;Portraits|https://photos.example.com/share/ccc
+  ```
+  This gives guests three tabs. For just one album, use a single pair —
+  `ALBUMS=Photos|https://photos.example.com/share/aaa`. (If you set the old
+  `IMMICH_URL` instead of `ALBUMS`, the portal still works and builds one
+  tab called "View & Save" from it, for backward compatibility.)
 - `UPLOAD_URL` — your public proxy URL for uploads (e.g. whatever you're
-  reverse-proxying — a drop-folder app, a second Immich share, etc.)
+  reverse-proxying — a drop-folder app, a second Immich share, etc.) If set,
+  an extra "Add Photos" tab is added automatically. Omit the line entirely
+  if you don't want an upload tab.
 - `PORTAL_TITLE` — optional, shown in the header (default: "Photo Portal")
+
+Names in `ALBUMS` can't contain a literal `|` or `;` (used as separators) or
+a `"` character (breaks the generated JS). Anything else, including spaces
+and `&`, is fine.
 
 ## 2. Build & run
 
@@ -39,7 +52,7 @@ blocks being shown inside another page — you'll just see a blank pane if
 that happens, with no error your browser will show you cleanly.
 
 - Immich's own share pages generally allow framing, but check your specific
-  version/config if the "View & Save" tab looks blank.
+  version/config if a tab looks blank.
 - Whatever you're using for the public upload proxy needs to explicitly
   **not** send a blocking `X-Frame-Options`/CSP header, or needs to allow
   your portal's origin in `frame-ancestors`.
@@ -78,58 +91,54 @@ and pushes it to the **GitHub Container Registry (GHCR)** on every push to
        image: ghcr.io/<you>/immich-portal:latest
        container_name: immich-portal
        environment:
-         - IMMICH_URL=https://photos.example.com/share/xxxxxxxx-xxxx
+         - ALBUMS=Ceremony|https://photos.example.com/share/aaa;Reception|https://photos.example.com/share/bbb
          - UPLOAD_URL=https://upload.example.com
          - PORTAL_TITLE=Family Photo Portal
        restart: unless-stopped
    ```
-   No `ports:` needed here if a Cloudflare Tunnel container on the same
-   Docker network is reaching it directly (see below) — add `ports:` only if
-   something on the host itself needs to reach it too.
 
 ## 5. Point a Cloudflare Tunnel at it
 
-**If `cloudflared` runs as a container** (most common in a compose stack),
-put it on the same Docker network as `immich-portal` and skip publishing any
-host port — containers can reach each other by service name:
+The container always listens on **port 80** internally — that's the one
+container port cloudflared needs, no matter how it's run.
+
+**On Unraid, with cloudflared as its own container** (the common Unraid
+setup): give `immich-portal` a normal port mapping just like your other
+apps, and point cloudflared at it by `http://<unraid-ip>:<port>` — the same
+pattern you already use for every other container, not by container name
+(Unraid's default networking usually doesn't resolve container names between
+separately-added containers).
 
 ```yaml
 services:
   immich-portal:
     image: ghcr.io/<you>/immich-portal:latest
     container_name: immich-portal
+    ports:
+      - "8090:80"    # pick any free host port on your Unraid box
     environment:
-      - IMMICH_URL=https://photos.example.com/share/xxxxxxxx-xxxx
-      - UPLOAD_URL=https://upload.example.com
-    networks: [tunnel-net]
+      - ALBUMS=Ceremony|https://photos.example.com/share/aaa
     restart: unless-stopped
-
-  cloudflared:
-    image: cloudflare/cloudflared:latest
-    command: tunnel run
-    environment:
-      - TUNNEL_TOKEN=<your-tunnel-token>
-    networks: [tunnel-net]
-    restart: unless-stopped
-
-networks:
-  tunnel-net:
 ```
 
-Then in the Cloudflare Zero Trust dashboard, under your tunnel's **Public
-Hostname**, set the service to:
-
+Then in the Cloudflare Zero Trust dashboard, add a **Public Hostname** for
+your tunnel with service:
 ```
-http://immich-portal:80
+http://192.168.1.50:8090
 ```
+(replace `192.168.1.50` with your actual Unraid LAN IP, and `8090` with
+whatever host port you chose).
 
-(`immich-portal` resolves via Docker's internal DNS since both containers
-share `tunnel-net`; port `80` is nginx inside the container — this is the
-"one container port" the tunnel needs.)
+**If cloudflared instead shares a custom Docker network** with your other
+containers (less common outside Unraid, but sometimes used), you can skip
+the host port entirely: attach `immich-portal` to that same network as
+`external: true` and point the tunnel at `http://immich-portal:80` — Docker's
+internal DNS resolves the container name directly. Ask if you want this
+version spelled out for your setup.
 
-**If `cloudflared` runs on the host** (not in Docker) instead, publish the
-port in compose (`ports: ["8080:80"]`) and point the tunnel's public
-hostname at `http://localhost:8080` instead.
+**If cloudflared runs directly on the host** (not in Docker) instead,
+publish the port in compose (`ports: ["8080:80"]`) and point the tunnel's
+public hostname at `http://localhost:8080` instead.
 
 ## File layout
 
@@ -140,7 +149,7 @@ immich-portal/
 ├── .gitignore
 ├── Dockerfile
 ├── docker-compose.yml               # local build/testing
-├── entrypoint.sh                    # injects IMMICH_URL/UPLOAD_URL/PORTAL_TITLE at container start
+├── entrypoint.sh                    # injects ALBUMS/UPLOAD_URL/PORTAL_TITLE at container start
 └── html/
     ├── index.html
     ├── style.css
@@ -148,8 +157,8 @@ immich-portal/
     └── config.js.template
 ```
 
-Because the URLs are injected at **container start** (via `envsubst`, not
-baked into the image), you can change `IMMICH_URL` / `UPLOAD_URL` in
+Because the config is injected at **container start** (via `envsubst`, not
+baked into the image), you can change `ALBUMS` / `UPLOAD_URL` in
 `docker-compose.yml` and just `docker compose up -d` again — no rebuild
 needed.
 
