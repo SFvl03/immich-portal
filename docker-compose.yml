@@ -9,11 +9,14 @@ services:
       - "8080:80"
     environment:
       # One tab per album: "Name|share-link;Name|share-link;..."
-      # Each name/URL pair is separated by "|", pairs separated by ";".
       - ALBUMS=Ceremony|https://photos.example.com/share/aaaaaaaa;Reception|https://photos.example.com/share/bbbbbbbb
       # Optional: adds an extra "Add Photos" tab pointing at your upload proxy.
       # Omit this line entirely if you don't want an upload tab.
       - UPLOAD_URL=https://upload.example.com
       # Optional: shown at the top of the page
       - PORTAL_TITLE=Family Photo Portal
+      # Basic Auth: guests must enter this before the page loads at all.
+      # PORTAL_USER defaults to "guest" if omitted; PORTAL_PASSWORD is required.
+      - PORTAL_USER=guest
+      - PORTAL_PASSWORD=change-me
     restart: unless-stopped

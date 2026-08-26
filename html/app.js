@@ -11,7 +11,6 @@
     'XI', 'XII', 'XIII', 'XIV', 'XV', 'XVI', 'XVII', 'XVIII', 'XIX', 'XX'];
   function roman(n) { return ROMAN[n] || String(n); }
 
-  // "Name|URL;Name|URL;..." -> [{name, url}, ...]
   function parseAlbums(raw) {
     if (!raw) return [];
     return raw.split(';').map(function (pair) {

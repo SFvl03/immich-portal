@@ -24,8 +24,6 @@ body {
   flex-direction: column;
 }
 
-/* ---------- header ---------- */
-
 .bar {
   position: relative;
   background: var(--ink-raised);
@@ -85,14 +83,8 @@ body {
 }
 
 .tab:hover { color: var(--paper); }
-
-.tab[aria-selected="true"] {
-  color: var(--paper);
-}
-
-.tab[aria-selected="true"] .tab-num {
-  opacity: 1;
-}
+.tab[aria-selected="true"] { color: var(--paper); }
+.tab[aria-selected="true"] .tab-num { opacity: 1; }
 
 .tab:focus-visible {
   outline: 2px solid var(--focus);
@@ -117,8 +109,6 @@ body {
   bottom: 0;
   transition: transform 0.35s cubic-bezier(.65,0,.35,1), width 0.35s cubic-bezier(.65,0,.35,1);
 }
-
-/* ---------- panes ---------- */
 
 main {
   flex: 1;
@@ -153,9 +143,7 @@ main {
   text-decoration: none;
 }
 
-.escape:hover {
-  color: var(--brass-bright);
-}
+.escape:hover { color: var(--brass-bright); }
 
 @media (prefers-reduced-motion: reduce) {
   .rail-fill { transition: none; }
